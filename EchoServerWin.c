@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 		ErrorHandling("listen() error");
 
 	szClntAddr = sizeof(clntAddr);
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 3; i++) {
 
 		hClntSock = accept(hServSock, (SOCKADDR*)&clntAddr, &szClntAddr);
 		if (hClntSock == INVALID_SOCKET)
@@ -53,17 +53,10 @@ int main(int argc, char* argv[])
 		else
 			printf("Connected client %d \n", i + 1);
 
-		send(hClntSock, message, sizeof(message), 0);
-
-		while (strcmp(buffer, endMessage)) {
-			memset(buffer, 0, sizeof(buffer));
-			strLen = recv(hClntSock, buffer, sizeof(buffer) - 1, 0);
-			if (strLen == -1)
-				ErrorHandling("read() error!");
-
-			printf("Message from client: %s \n", buffer);
-		}
 		memset(buffer, 0, sizeof(buffer));
+
+		while ((strLen = recv(hClntSock, buffer, sizeof(buffer), 0)) != 0)
+			send(hClntSock, buffer, strLen, 0);
 
 		closesocket(hClntSock);
 	}

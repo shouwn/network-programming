@@ -38,20 +38,21 @@ int main(int argc, char* argv[])
 
 	if (connect(hSocket, (SOCKADDR*)&servAddr, sizeof(servAddr)) == SOCKET_ERROR)
 		ErrorHandling("connect() error!");
+	else
+		puts("Connected..........");
 
-	strLen = recv(hSocket, message, sizeof(message) - 1, 0);
-	if (strLen == -1)
-		ErrorHandling("read() error!");
-
-	printf("Message from server: %s \n", message);
-
-
-	do {
-		memset(buffer, 0, sizeof(buffer));
-		printf("Type message to server: ");
+	while (1) {
+		fputs("Input message(Q to quit): ", stdout);
 		fgets(buffer, sizeof(buffer), stdin);
-		send(hSocket, buffer, sizeof(buffer), 0);
-	} while (strcmp(buffer, endMessage));
+
+		if (!strcmp(buffer, "q\n") || !strcmp(buffer, "Q\n"))
+			break;
+
+		send(hSocket, buffer, strlen(buffer), 0);
+		strLen = recv(hSocket, buffer, sizeof(buffer) - 1, 0);
+		buffer[strLen] = 0;
+		printf("Messsage from server : %s", buffer);
+	}
 
 	closesocket(hSocket);
 	WSACleanup();
