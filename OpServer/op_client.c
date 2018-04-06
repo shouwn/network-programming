@@ -1,10 +1,10 @@
 // HelloClientWin.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
 #include <stdio.h>
 #include <winsock2.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define BUF_SIZE 1024
 #define RLT_SIZE 4
@@ -17,8 +17,6 @@ int main(int argc, char* argv[])
 	WSADATA wsaData;
 	SOCKET hSocket;
 	SOCKADDR_IN servAddr;
-
-	int strLen;
 
 	char opMsg[BUF_SIZE];
 	int result, opndCnt, i;
@@ -46,13 +44,22 @@ int main(int argc, char* argv[])
 		puts("Connected........\n");
 
 	fputs("Operand count: ", stdout);
+	scanf("%d", &opndCnt);
+	opMsg[0] = (char)opndCnt;
 
-	do {
-		
-		printf("Type message to server: ");
-		fgets(buffer, sizeof(buffer), stdin);
-		send(hSocket, buffer, sizeof(buffer), 0);
-	} while (strcmp(buffer, endMessage));
+	for (i = 0; i < opndCnt; i++) {
+		printf("Operand %d: ", i + 1);
+		scanf("%d", (int*)&opMsg[i * OPSZ + 1]);
+	}
+
+	fgetc(stdin);
+	fputs("Operator: ", stdout);
+	scanf("%c", &opMsg[opndCnt * OPSZ + 1]);
+
+	send(hSocket, opMsg, opndCnt * OPSZ + 2, 0);
+
+	recv(hSocket, (char*)&result, RLT_SIZE, 0);
+	printf("Operation result: %d \n", result);
 
 	closesocket(hSocket);
 	WSACleanup();
@@ -64,4 +71,3 @@ void ErrorHandling(char* message) {
 	fputc('\n', stderr);
 	exit(1);
 }
-

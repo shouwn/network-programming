@@ -1,10 +1,10 @@
 // HelloServerWin.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <winsock2.h>
+#include <string.h>
 
 #define BUF_SIZE 1024
 #define OPSZ 4
@@ -55,13 +55,11 @@ int main(int argc, char* argv[])
 	szClntAddr = sizeof(clntAddr);
 
 	for (i = 0; i < 5; i++) {
+		opndCnt = 0;
 		hClntSock = accept(hServSock, (SOCKADDR*)&clntAddr, &szClntAddr);
 
-		send(hClntSock, (char*)message, sizeof(message), 0);
+		recv(hClntSock, &opndCnt, 1, 0);
 		printf("%s %d\n", message, i + 1);
-
-		opndCnt = 0;
-		recv(hClntSock, (char*)&opndCnt, 1, 0);
 
 		recvLen = 0;
 		while ((opndCnt * OPSZ + 1) > recvLen)
@@ -71,7 +69,9 @@ int main(int argc, char* argv[])
 		}
 
 		result = calculate(opndCnt, (int*)opInfo, opInfo[recvLen - 1]);
-		
+
+		printf("result : %d \n", result);
+
 		send(hClntSock, (char*)&result, sizeof(result), 0);
 
 		closesocket(hClntSock);
@@ -104,4 +104,3 @@ void ErrorHandling(char* message) {
 	fputc('\n', stderr);
 	exit(1);
 }
-
