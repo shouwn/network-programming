@@ -2,24 +2,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <winsock2.h>
+#include "stack.h"
 
 void ErrorHandling(char * message);
 void recvMessage(SOCKET sock, char* buf, int strLen);
+int postCalculate(char * opMsg);
+int cal(int opnd1, int opnd2, char op);
 
 int main(int argc, char* argv[])
 {
-	char fileName[100];
-	int fSize;
-	FILE* fp;
 
 	WSADATA wsaData;
 	SOCKET servSock, clntSock, sendLen;
 	SOCKADDR_IN servAddr, clntAddr;
-
+	int i;
 	int szClntAddr;
-	int strLen, i, recvLen, len;
+	int messageLen;
 	char readBuf[1024];
-	char* message;
+	
+	FILE* fp;
+	char fileName[100];
+	int fSize;
+	//fp = fopen(fileName, "rt"); //read mode
+	//fSize = fread(read_buf, 1, 1024, fp); //read by 1byte for 1024byte
+	//fclose(fp); //close file
+
+	int result;
+	//write here
+
+
 	char success[] = "success";
 	char failed[] = "failed";
 
@@ -61,10 +72,12 @@ int main(int argc, char* argv[])
 		fputs("Server: accept\n", stdout);
 	//accept
 
-	recvMessage(clntSock, readBuf, sizeof("Hello"));
-	send(clntSock, "Hello", sizeof("Hello"), 0);
+	recvMessage(clntSock, (char*)&messageLen, sizeof(int));
+	recvMessage(clntSock, readBuf, messageLen);
 
-	puts(readBuf);
+	result = postCalculate(readBuf);
+	send(clntSock, (char*)&result, sizeof(result), 0);
+	printf("client request : %s \n result : %d\n", readBuf, result);
 
 	closesocket(clntSock);
 	closesocket(servSock);
@@ -84,6 +97,45 @@ void recvMessage(SOCKET sock, char* buf, int strLen) {
 			ErrorHandling("read() error!");
 
 		recvLen += recvCnt;
+	}
+}
+
+
+int postCalculate(char * opMsg) {
+
+	int len = 0, i;
+	int max = ((int) opMsg[0]) * 2 - 1;
+	int opnd1, opnd2;
+	int result;
+	Stack* stack = stack_init();
+
+	len = 1;
+
+	for (i = 0; i < max; i++) {
+
+		if (opMsg[len++] == sizeof(int)) {
+			push(stack, *(int*)&(opMsg[len]));
+			len += sizeof(int);
+		}
+		else {
+			opnd2 = pop(stack);
+			opnd1 = pop(stack);
+			push(stack, cal(opnd1, opnd2, opMsg[len++]));
+		}
+	}
+
+	result = pop(stack);
+	free(stack);
+
+	return result;
+}
+
+int cal(int opnd1, int opnd2, char op) {
+
+	switch (op) {
+	case '+': return opnd1 + opnd2;
+	case '-': return opnd1 - opnd2;
+	case '*': return opnd1 * opnd2;
 	}
 }
 
