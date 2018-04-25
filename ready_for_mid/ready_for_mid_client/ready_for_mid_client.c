@@ -2,20 +2,33 @@
 #include <stdio.h>
 #include <winsock2.h>
 #include <stdlib.h>
+#include "stack.h"
 
 void ErrorHandling(char* message);
 void recvMessage(SOCKET sock, char* buf, int len);
+void printOp(char* buffer);
+int scanOp(char* buffer);
 
 int main(int argc, char* argv[])
 {
+	int i;
+
 	WSADATA wsaData;
 	SOCKET sock;
 	SOCKADDR_IN servAddr;
 
 	char readBuf[1024];
+	int messageLen;
+
+	FILE* fp;
 	char fileName[100];
-	int strLen, i, recvLen, len, sendLen;
-	char message[30];
+	int fSize;
+	//fp = fopen(fileName, "wt"); //read mode
+	//fSize = fread(read_buf, 1, 1024, fp); //read by 1byte for 1024byte
+	//fclose(fp); //close file
+
+	int result;
+	//wrtie here
 
 	// connection
 	if (argc != 3) {
@@ -41,10 +54,15 @@ int main(int argc, char* argv[])
 		fputs("client: connected\n", stdout);
 	// connection
 
-	send(sock, "Hello", sizeof("Hello"), 0);
-	recvMessage(sock, readBuf, sizeof("Hello"));
+	messageLen = scanOp(readBuf);
+	send(sock, readBuf, messageLen, 0);
 
-	puts(readBuf);
+	recvMessage(sock, (char*)&result, sizeof(int));
+
+	printOp(readBuf);
+	printf(" = %d\n", result);
+
+	puts("\nclient end\n");
 
 	closesocket(sock);
 	WSACleanup();
@@ -64,6 +82,52 @@ void recvMessage(SOCKET sock, char* buf, int strLen) {
 
 		recvLen += recvCnt;
 	}
+}
+
+int scanOp(char* buffer) {
+	int opndCnt, len = 0, i;
+
+	memset(buffer, 0, sizeof(buffer));
+
+	printf("Operand count: ");
+	scanf("%d", &opndCnt);
+	buffer[len++] = opndCnt;
+
+	fgetc(stdin);
+
+	for (i = 0; i < opndCnt - 1; i++) {
+		printf("Operand %d: ", i + 1);
+		scanf("%d", (int*)&buffer[len]);
+		len += 4;
+
+		fgetc(stdin);
+
+		printf("Operator: ");
+		scanf("%c", &buffer[len++]);
+	}
+	fgetc(stdin);
+
+	printf("Operand %d: ", i + 1);
+	scanf("%d", (int*)&buffer[len]);
+	len += 4;
+
+	return len;
+}
+
+void printOp(char* buffer) {
+	int opndCnt;
+	int len = 0;
+	int i;
+
+	opndCnt = buffer[len++];
+
+	for (i = 0; i < opndCnt - 1; i++) {
+		printf("%d ", *(int*)&buffer[len]);
+		len += 4;
+		printf("%c ", buffer[len++]);
+	}
+
+	printf("%d", *(int*)&buffer[len]);
 }
 
 void ErrorHandling(char* message) {

@@ -8,6 +8,8 @@ void ErrorHandling(char * message);
 void recvMessage(SOCKET sock, char* buf, int strLen);
 int postCalculate(char * opMsg);
 int cal(int opnd1, int opnd2, char op);
+int infix2Postfix(int opndCnt, const char* input, char* output);
+void printOp(char* buffer);
 
 int main(int argc, char* argv[])
 {
@@ -23,11 +25,13 @@ int main(int argc, char* argv[])
 	FILE* fp;
 	char fileName[100];
 	int fSize;
-	//fp = fopen(fileName, "rt"); //read mode
+	//fp = fopen(fileName, "rt"); //read mode, check fp == null
 	//fSize = fread(read_buf, 1, 1024, fp); //read by 1byte for 1024byte
 	//fclose(fp); //close file
 
 	int result;
+	char resultBuf[1024];
+	int opndCnt;
 	//write here
 
 
@@ -72,14 +76,17 @@ int main(int argc, char* argv[])
 		fputs("Server: accept\n", stdout);
 	//accept
 
-	recvMessage(clntSock, (char*)&messageLen, sizeof(int));
-	recvMessage(clntSock, readBuf, messageLen);
+	recvMessage(clntSock, (char*)&opndCnt, 1);
+	recvMessage(clntSock, readBuf, opndCnt * 5 - 1);
 
-	result = postCalculate(readBuf);
+	infix2Postfix(opndCnt, readBuf, resultBuf);
+
+	result = postCalculate(resultBuf);
 	send(clntSock, (char*)&result, sizeof(result), 0);
-	printf("client request : %s \n result : %d\n", readBuf, result);
 
 	closesocket(clntSock);
+	puts("disconnect\n");
+
 	closesocket(servSock);
 	WSACleanup();
 	return 0;
@@ -100,6 +107,21 @@ void recvMessage(SOCKET sock, char* buf, int strLen) {
 	}
 }
 
+void printOp(char* buffer) {
+	int opndCnt;
+	int len = 0;
+	int i;
+
+	opndCnt = buffer[len++];
+
+	for (i = 0; i < opndCnt - 1; i++) {
+		printf("%d ", *(int*)&buffer[len]);
+		len += 4;
+		printf("%c ", buffer[len++]);
+	}
+
+	printf("%d", *(int*)&buffer[len]);
+}
 
 int postCalculate(char * opMsg) {
 
@@ -138,6 +160,71 @@ int cal(int opnd1, int opnd2, char op) {
 	case '*': return opnd1 * opnd2;
 	}
 }
+
+int infix2Postfix(int opndCnt, const char* input, char* output) {
+	int i;
+	int inLen = 0, outLen = 0;
+
+	char operator;
+	Stack* stack = stack_init();
+
+	memset(output, 0, sizeof(output));
+
+	output[outLen++] = opndCnt;
+
+	for (i = 0; i < opndCnt - 1; i++) {
+
+		output[outLen++] = 4;
+
+		*(int*)&(output[outLen]) = *(int*)&(input[inLen]);
+		outLen += 4;
+		inLen += 4;
+		
+
+		operator = input[inLen++];
+		
+		if (isEmpty(stack))
+			push(stack, operator);
+		else {
+			switch (operator) {
+			case '+': case '-': {
+				while (!isEmpty(stack)) {
+					output[outLen++] = 1;
+					output[outLen++] = pop(stack);
+				}
+				push(stack, operator);
+				break;
+			}
+			case '*': {
+				while (!isEmpty(stack) && peak(stack) == '*') {
+					output[outLen++] = 1;
+					output[outLen++] = pop(stack);
+				}
+
+				push(stack, operator);
+				break;
+			}
+			}
+		}
+
+	}
+
+	output[outLen++] = 4;
+
+	*(int*)&output[outLen] = *(int*)&input[inLen];
+	outLen += 4;
+	inLen += 4;
+	
+	while (!isEmpty(stack)) {
+		output[outLen++] = 1;
+		output[outLen++] = pop(stack);
+	}
+
+	free(stack);
+
+	return outLen;
+}
+
 
 void ErrorHandling(char* message) {
 	fputs(message, stderr);

@@ -1,7 +1,7 @@
 #include "stack.h"
 
-void push(Stack* stack, int operand) {
-	stack->arr[stack->size++] = operand;
+void push(Stack* stack, char operator) {
+	stack->arr[stack->size++] = operator;
 }
 
 Stack* stack_init() {
@@ -10,11 +10,11 @@ Stack* stack_init() {
 	return stack;
 }
 
-int pop(Stack* stack) {
+char pop(Stack* stack) {
 	return stack->arr[--stack->size];
 }
 
-int peak(Stack* stack) {
+char peak(Stack* stack) {
 	return stack->arr[stack->size - 1];
 }
 
